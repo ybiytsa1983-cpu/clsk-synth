@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DRGR Synth Studio | CLSK Miner</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #1a1d24;
+            --accent: #00ff9d;
+            --accent-dim: #00ff9d33;
+            --text: #e0e0e0;
+            --knob-size: 50px;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* HEADER & SCORE */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: var(--panel);
+            border-bottom: 1px solid #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); }
+        
+        .score-box {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            background: #222;
+            padding: 5px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 10px var(--accent-dim);
+        }
+
+        /* VISUALIZER */
+        #visualizer {
+            width: 100%;
+            height: 120px;
+            background: #000;
+            border-bottom: 1px solid #333;
+        }
+
+        /* CONTROLS AREA */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: var(--panel);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .control-group {
+            background: #252932;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .knob-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .knob-row label { font-size: 0.75rem; width: 40px; }
+        
+        input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+            accent-color: var(--accent);
+            height: 4px;
+            background: #444;
+            border-radius: 2px;
+            appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px var(--accent);
+        }
+
+        .val-display { font-size: 0.7rem; width: 30px; text-align: right; color: var(--accent); }
+
+        select {
+            width: 100%;
+            background: #111;
+            color: var(--accent);
+            border: 1px solid #444;
+            padding: 5px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        /* KEYBOARD */
+        .keyboard {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            background: #000;
+            padding: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .key {
+            position: relative;
+            border: 1px solid #333;
+            border-radius: 0 0 4px 4px;
+            cursor: pointer;
+            transition: background 0.1s, transform 0.05s;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            font-size: 0.7rem;
+            color: #555;
+            z-index: 1;
+        }
+
+        .key.white {
+            background: linear-gradient(to bottom, #eee 0%, #fff 100%);
+            width: 40px;
+            height: 100%;
+            margin: 0 2px;
+            color: #333;
+        }
+
+        .key.black {
+            background: linear-gradient(to bottom, #333 0%, #000 100%);
+            width: 30px;
+            height: 60%;
+            margin-left: -17px;
+            margin-right: -17px;
+            z-index: 2;
+            color: #fff;
+            border: 1px solid #000;
+        }
+
+        .key.active {
+            background: var(--accent) !important;
+            box-shadow: 0 0 15px var(--accent);
+            transform: translateY(2px);
+            color: #000;
+        }
+
+        /* OVERLAY */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        #start-btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 20px var(--accent);
+            transition: transform 0.2s;
+        }
+
+        #start-btn:hover { transform: scale(1.05); }
+
+        /* FLOATING TEXT */
+        .floater {
+            position: absolute;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 0 5px #000;
+            z-index: 50;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            .key.white { width: 30px; }
+            .key.black { width: 22px; margin-left: -13px; margin-right: -13px; }
+            .controls { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1 style="margin-bottom: 20px;">DRGR SYNTH STUDIO</h1>
+        <button id="start-btn">ЗАПУСК СИСТЕМЫ</button>
+    </div>
+
+    <header>
+        <h1>DRGR SYNTH</h1>
+        <div class="score-box">CLSK: <span id="score">0</span></div>
+    </header>
+
+    <canvas id="visualizer"></canvas>
+
+    <div class="controls">
+        <!-- OSCILLATOR -->
+        <div class="control-group">
+            <h3>Oscillator</h3>
+            <select id="waveform">
+                <option value="sawtooth">Sawtooth</option>
+                <option value="square">Square</option>
+                <option value="sine">Sine</option>
+                <option value="triangle">Triangle</option>
+            </select>
+        </div>
+
+        <!-- ENVELOPE ADSR -->
+        <div class="control-group">
+            <h3>Envelope (ADSR)</h3>
+            <div class="knob-row"><label>A</label><input type="range" id="attack" min="0" max="1" step="0.01" value="0.05"><span class="val-display" id="val-attack">0.05</span></div>
+            <div class="knob-row"><label>D</label><input type="range" id="decay" min="0" max="1" step="0.01" value="0.2"><span class="val-display" id="val-decay">0.2</span></div>
+            <div class="knob-row"><label>S</label><input type="range" id="sustain" min="0" max="1" step="0.01" value="0.5"><span class="val-display" id="val-sustain">0.5</span></div>
+            <div class="knob-row"><label>R</label><input type="range" id="release" min="0" max="2" step="0.01" value="0.5"><span class="val-display" id="val-release">0.5</span></div>
+        </div>
+
+        <!-- FILTER -->
+        <div class="control-group">
+            <h3>Filter</h3>
+            <select id="filterType" style="margin-bottom: 10px;">
+                <option value="lowpass">Lowpass</option>
+                <option value="highpass">Highpass</option>
+                <option value="bandpass">Bandpass</option>
+            </select>
+            <div class="knob-row"><label>Cut</label><input type="range" id="filterFreq" min="100" max="10000" step="10" value="2000"><span class="val-display" id="val-filterFreq">2k</span></div>
+            <div class="knob-row"><label>Res</label><input type="range" id="filterQ" min="0" max="20" step="0.1" value="5"><span class="val-display" id="val-filterQ">5</span></div>
+        </div>
+
+        <!-- FX -->
+        <div class="control-group">
+            <h3>Delay FX</h3>
+            <div class="knob-row"><label>Time</label><input type="range" id="delayTime" min="0" max="1" step="0.05" value="0.3"><span class="val-display" id="val-delayTime">0.3</span></div>
+            <div class="knob-row"><label>Fdbk</label><input type="range" id="delayFeedback" min="0" max="0.9" step="0.05" value="0.4"><span class="val-display" id="val-delayFeedback">0.4</span></div>
+        </div>
+    </div>
+
+    <div class="keyboard" id="keyboard">
+        <!-- Keys generated by JS -->
+    </div>
+
+    <script>
+        // --- AUDIO ENGINE ---
+        let audioCtx;
+        let masterGain;
+        let analyser;
+        let delayNode;
+        let delayFeedback;
+        let filterNode;
+        
+        const activeOscillators = new Map();
+        let clskScore = 0;
+        let noteSequence = 0;
+        let lastNoteTime = 0;
+
+        // Notes frequencies (C3 - C5)
+        const notes = [
+            { note: 'C3', freq: 130.81, type: 'white' },
+            { note: 'C#3', freq: 138.59, type: 'black' },
+            { note: 'D3', freq: 146.83, type: 'white' },
+            { note: 'D#3', freq: 155.56, type: 'black' },
+            { note: 'E3', freq: 164.81, type: 'white' },
+            { note: 'F3', freq: 174.61, type: 'white' },
+            { note: 'F#3', freq: 185.00, type: 'black' },
+            { note: 'G3', freq: 196.00, type: 'white' },
+            { note: 'G#3', freq: 207.65, type: 'black' },
+            { note: 'A3', freq: 220.00, type: 'white' },
+            { note: 'A#3', freq: 233.08, type: 'black' },
+            { note: 'B3', freq: 246.94, type: 'white' },
+            { note: 'C4', freq: 261.63, type: 'white' },
+            { note: 'C#4', freq: 277.18, type: 'black' },
+            { note: 'D4', freq: 293.66, type: 'white' },
+            { note: 'D#4', freq: 311.13, type: 'black' },
+            { note: 'E4', freq: 329.63, type: 'white' },
+            { note: 'F4', freq: 349.23, type: 'white' },
+            { note: 'F#4', freq: 369.99, type: 'black' },
+            { note: 'G4', freq: 392.00, type: 'white' },
+            { note: 'G#4', freq: 415.30, type: 'black' },
+            { note: 'A4', freq: 440.00, type: 'white' },
+            { note: 'A#4', freq: 466.16, type: 'black' },
+            { note: 'B4', freq: 493.88, type: 'white' },
+            { note: 'C5', freq: 523.25, type: 'white' }
+        ];
+
+        // --- INIT ---
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Master Chain
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.4;
+            
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+
+            // FX: Delay
+            delayNode = audioCtx.createDelay(2.0);
+            delayFeedback = audioCtx.createGain();
+            updateDelay();
+
+            // Filter (Global for now, could be per voice)
+            filterNode = audioCtx.createBiquadFilter();
+            updateFilter();
+
+            // Routing: Osc -> Filter -> Master -> Analyser -> Dest
+            //          Osc -> Filter -> Delay -> Feedback -> Delay -> Master
+            filterNode.connect(masterGain);
+            filterNode.connect(delayNode);
+            delayNode.connect(delayFeedback);
+            delayFeedback.connect(delayNode);
+            delayNode.connect(masterGain);
+            
+            masterGain.connect(analyser);
+            analyser.connect(audioCtx.destination);
+
+            document.getElementById('overlay').style.display = 'none';
+            drawVisualizer();
+        });
+
+        // --- SYNTH LOGIC ---
+        function playNote(freq, noteName, element) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // Stop existing oscillator for this note if any (monophonic per key, but polyphonic synth)
+            if (activeOscillators.has(noteName)) {
+                stopNote(noteName, element);
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = document.getElementById('waveform').value;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            // Envelope
+            const now = audioCtx.currentTime;
+            const attack = parseFloat(document.getElementById('attack').value);
+            const decay = parseFloat(document.getElementById('decay').value);
+            const sustain = parseFloat(document.getElementById('sustain').value);
+            
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(1.0, now + attack);
+            gainNode.gain.exponentialRampToValueAtTime(sustain + 0.001, now + attack + decay);
+
+            osc.connect(gainNode);
+            gainNode.connect(filterNode); // Connect to filter
+            osc.start();
+
+            activeOscillators.set(noteName, { osc, gainNode });
+            
+            // UI
+            element.classList.add('active');
+
+            // GAMIFICATION
+            addScore(5, element);
+            checkMelodyBonus();
+        }
+
+        function stopNote(noteName, element) {
+            if (!activeOscillators.has(noteName)) return;
+
+            const { osc, gainNode } = activeOscillators.get(noteName);
+            const now = audioCtx.currentTime;
+            const release = parseFloat(document.getElementById('release').value);
+
+            // Release envelope
+            gainNode.gain.cancelScheduledValues(now);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + release);
+
+            osc.stop(now + release + 0.1);
+            
+            // Cleanup map after release
+            setTimeout(() => {
+                if(activeOscillators.has(noteName) && activeOscillators.get(noteName).osc === osc) {
+                    activeOscillators.delete(noteName);
+                }
+            }, (release + 0.2) * 1000);
+
+            element.classList.remove('active');
+        }
+
+        // --- CONTROLS UPDATERS ---
+        function updateFilter() {
+            if(!filterNode) return;
+            filterNode.type = document.getElementById('filterType').value;
+            filterNode.frequency.value = document.getElementById('filterFreq').value;
+            filterNode.Q.value = document.getElementById('filterQ').value;
+        }
+
+        function updateDelay() {
+            if(!delayNode) return;
+            delayNode.delayTime.value = document.getElementById('delayTime').value;
+            delayFeedback.gain.value = document.getElementById('delayFeedback').value;
+        }
+
+        // Bind inputs
+        ['attack', 'decay', 'sustain', 'release', 'filterFreq', 'filterQ', 'delayTime', 'delayFeedback'].forEach(id => {
+            const el = document.getElementById(id);
+            const disp = document.getElementById('val-' + id);
+            el.addEventListener('input', () => {
+                disp.innerText = id === 'filterFreq' ? (el.value/1000).toFixed(1) + 'k' : el.value;
+                if(id.includes('filter')) updateFilter();
+                if(id.includes('delay')) updateDelay();
+            });
+        });
+
+        document.getElementById('filterType').addEventListener('change', updateFilter);
+
+        // --- UI GENERATION ---
+        const keyboardEl = document.getElementById('keyboard');
+        
+        notes.forEach(n => {
+            const key = document.createElement('div');
+            key.className = `key ${n.type}`;
+            key.dataset.note = n.note;
+            key.dataset.freq = n.freq;
+            key.innerText = n.note;
+            
+            // Mouse Events
+            key.addEventListener('mousedown', () => playNote(n.freq, n.note, key));
+            key.addEventListener('mouseup', () => stopNote(n.note, key));
+            key.addEventListener('mouseleave', () => stopNote(n.note, key));
+
+            // Touch Events
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                playNote(n.freq, n.note, key);
+            });
+            key.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopNote(n.note, key);
+            });
+
+            keyboardEl.appendChild(key);
+        });
+
+        // --- GAMIFICATION ---
+        function addScore(amount, element) {
+            clskScore += amount;
+            document.getElementById('score').innerText = clskScore;
+
+            // Floating text
+            const rect = element.getBoundingClientRect();
+            const floater = document.createElement('div');
+            floater.className = 'floater';
+            floater.innerText = `+${amount} CLSK`;
+            floater.style.left = (rect.left + rect.width/2 - 20) + 'px';
+            floater.style.top = (rect.top - 20) + 'px';
+            document.body.appendChild(floater);
+            setTimeout(() => floater.remove(), 1000);
+        }
+
+        function checkMelodyBonus() {
+            const now = Date.now();
+            if (now - lastNoteTime < 2000) { // Notes played within 2 seconds
+                noteSequence++;
+            } else {
+                noteSequence = 1;
+            }
+            lastNoteTime = now;
+
+            if (noteSequence >= 5) {
+                // Bonus trigger
+                noteSequence = 0; // Reset
+                clskScore += 50;
+                document.getElementById('score').innerText = clskScore;
+                
+                const bonus = document.createElement('div');
+                bonus.className = 'floater';
+                bonus.innerText = `MELODY BONUS! +50 CLSK`;
+                bonus.style.left = '50%';
+                bonus.style.top = '50%';
+                bonus.style.fontSize = '2rem';
+                bonus.style.color = '#fff';
+                bonus.style.textShadow = '0 0 10px var(--accent)';
+                document.body.appendChild(bonus);
+                setTimeout(() => bonus.remove(), 1500);
+            }
+        }
+
+        // --- VISUALIZER ---
+        function drawVisualizer() {
+            const canvas = document.getElementById('visualizer');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, width, height);
+
+                const barWidth = (width / bufferLength) * 2.5;
+                let barHeight;
+                let x = 0;
+
+                for(let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i] / 2;
+                    
+                    const r = barHeight + 25 * (i/bufferLength);
+                    const g = 250 * (i/bufferLength);
+                    const b = 50;
+
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+
+                    x += barWidth + 1;
+                }
+            }
+            draw();
+        }
+    </script>
+</body>
+</html>
