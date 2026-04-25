@@ -232,6 +232,9 @@
             .controls { grid-template-columns: 1fr 1fr; }
         }
     </style>
+        <!-- TON Connect UI -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link rel="tonconnect-manifest" href="https://ybiytsa1983-cpu.github.io/clsk-synth/tonconnect-manifest.json">
 </head>
 <body>
 
@@ -243,6 +246,7 @@
     <header>
         <h1>DRGR SYNTH</h1>
         <div class="score-box">CLSK: <span id="score">0</span></div>
+                <div id="ton-connect"></div>
     </header>
 
     <canvas id="visualizer"></canvas>
@@ -569,6 +573,74 @@
             }
             draw();
         }
+
+            // --- TON CONNECT INTEGRATION ---
+    let tonConnectUI;
+    let userWalletAddress = null;
+    const RECIPIENT_WALLET = 'UQDxuCG-aNLCAbSb_X7YvKeV6CINXQN_QkFHFlGlYAyfpHFS';
+
+    // Initialize TON Connect
+    async function initTonConnect() {
+        if (typeof TON_CONNECT_UI === 'undefined') {
+            console.log('Waiting for TON Connect UI to load...');
+            setTimeout(initTonConnect, 500);
+            return;
+        }
+
+        tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://ybiytsa1983-cpu.github.io/clsk-synth/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect'
+        });
+
+        // Listen for wallet connection
+        tonConnectUI.onStatusChange(wallet => {
+            if (wallet) {
+                userWalletAddress = wallet.account.address;
+                console.log('Wallet connected:', userWalletAddress);
+            } else {
+                userWalletAddress = null;
+                console.log('Wallet disconnected');
+            }
+        });
+    }
+
+    // Convert CLSK tokens to TON
+    async function convertClskToTon() {
+        if (!userWalletAddress) {
+            alert('Пожалуйста, подключите TON кошелек!');
+            return;
+        }
+
+        if (clskScore < 100) {
+            alert('Минимум 100 CLSK для конвертации!');
+            return;
+        }
+
+        const tonAmount = Math.floor(clskScore / 100) * 0.001; // 100 CLSK = 0.001 TON
+        
+        try {
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 360,
+                messages: [
+                    {
+                        address: RECIPIENT_WALLET,
+                        amount: String(tonAmount * 1000000000) // Convert to nanotons
+                    }
+                ]
+            };
+
+            await tonConnectUI.sendTransaction(transaction);
+            clskScore = 0;
+            document.getElementById('score').innerText = clskScore;
+            alert(`Успешно! Отправлено ${tonAmount} TON`);
+        } catch (error) {
+            console.error('Transaction error:', error);
+            alert('Ошибка транзакции: ' + error.message);
+        }
+    }
+
+    // Initialize on page load
+    setTimeout(initTonConnect, 1000);
     </script>
 </body>
 </html>
