@@ -604,19 +604,21 @@
         });
     }
 
-    // Convert CLSK tokens to TON
-    async function convertClskToTon() {
+        async function buyClskWithTon() {
         if (!userWalletAddress) {
             alert('Пожалуйста, подключите TON кошелек!');
             return;
         }
 
-        if (clskScore < 100) {
-            alert('Минимум 100 CLSK для конвертации!');
+        // Request TON payment amount (user enters how much TON to send)
+        const tonInput = prompt('Введите сумму TON для покупки CLSK токенов\n(Курс: 0.001 TON = 100 CLSK):', '0.01');
+        if (!tonInput || isNaN(tonInput) || parseFloat(tonInput) <= 0) {
+            alert('Неверная сумма!');
             return;
         }
 
-        const tonAmount = Math.floor(clskScore / 100) * 0.001; // 100 CLSK = 0.001 TON
+        const tonAmount = parseFloat(tonInput);
+        const clskToReceive = Math.floor((tonAmount / 0.001) * 100); // 0.001 TON = 100 CLSK
         
         try {
             const transaction = {
@@ -630,15 +632,15 @@
             };
 
             await tonConnectUI.sendTransaction(transaction);
-            clskScore = 0;
+            // Add CLSK tokens to user balance
+            clskScore += clskToReceive;
             document.getElementById('score').innerText = clskScore;
-            alert(`Успешно! Отправлено ${tonAmount} TON`);
+            alert(`Успешно! Получено ${clskToReceive} CLSK за ${tonAmount} TON`);
         } catch (error) {
             console.error('Transaction error:', error);
             alert('Ошибка транзакции: ' + error.message);
         }
     }
-
     // Initialize on page load
     setTimeout(initTonConnect, 1000);
     </script>
