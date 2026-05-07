@@ -249,6 +249,14 @@
                 <div id="ton-connect"></div>
     </header>
 
+            <!-- CLSK Exchange UI -->
+            <div id="exchange-panel" style="display:none; background: #1a1d24; padding: 15px; margin: 10px 20px; border-radius: 10px; text-align: center;">
+                            <h3 style="margin-top:0; color: #00ff9d;">💎 Exchange CLSK</h3>
+                            <p style="color: #e0e0e0;">Exchange your CLSK tokens for TON and Telegram Stars</p>
+                            <button id="withdraw-btn" style="background: #00ff9d; color: #0f1115; border: none; padding: 12px 25px; margin: 5px; border-radius: 5px; font-weight: bold; cursor: pointer;">⬆️ Withdraw CLSK</button>
+                            <a href="https://fragment.com" target="_blank" style="display: inline-block; background: #0088cc; color: white; text-decoration: none; padding: 12px 25px; margin: 5px; border-radius: 5px; font-weight: bold;">⭐ Telegram Stars Market</a>
+                        </div>
+
     <canvas id="visualizer"></canvas>
 
     <div class="controls">
@@ -597,9 +605,11 @@
             if (wallet) {
                 userWalletAddress = wallet.account.address;
                 console.log('Wallet connected:', userWalletAddress);
+                                document.getElementById('exchange-panel').style.display = 'block';
             } else {
                 userWalletAddress = null;
                 console.log('Wallet disconnected');
+                                document.getElementById('exchange-panel').style.display = 'none';
             }
         });
     }
@@ -643,6 +653,10 @@
     }
     // Initialize on page load
     setTimeout(initTonConnect, 1000);
+            // Withdraw button handler
+                document.getElementById('withdraw-btn').addEventListener('click', function() {
+                                alert(`Баланс CLSK: ${clskScore}\n\nДля обмена CLSK:\n1. Используйте встроенную функцию обмена\n2. Посетите Telegram Stars Market (Fragment.com)\n3. Обменяйте через DEX или P2P`);
+                            });
     </script>
 </body>
 </html>
